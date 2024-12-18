@@ -1,0 +1,32 @@
+buildscript {
+    ext.kotlin_version = '1.9.10' // Aktualisiere auf die empfohlene Kotlin-Version
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.0' // Aktualisiere auf die neueste Gradle-Version
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+allprojects {
+    repositories {
+        google() // Wichtig, um AndroidX-Abhängigkeiten zu finden
+        mavenCentral()
+        maven {
+            url 'https://jitpack.io'
+        }
+    }
+}
+
+// Gemeinsame Build-Einstellungen
+rootProject.buildDir = "../build"
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+    project.evaluationDependsOn(":app")
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}

@@ -1,51 +1,62 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
 
 class FavoriteService {
-  static const String _favoritesKey = 'favoriteCities';
-  SharedPreferences? _prefs;
+  Database? _database;
 
-  // SharedPreferences Instanz laden
-  Future<void> _initPrefs() async {
-    _prefs ??= await SharedPreferences.getInstance();
+  Future<Database> initializeDB() async {
+    if (_database != null) return _database!;
+    String path = await getDatabasesPath();
+    _database = await openDatabase(
+      join(path, 'favorites.db'),
+      onCreate: (database, version) async {
+        await database.execute(
+          "CREATE TABLE favorites(id INTEGER PRIMARY KEY AUTOINCREMENT, city TEXT NOT NULL)",
+        );
+      },
+      version: 1,
+    );
+    return _database!;
   }
 
-  // Favoriten abrufen
+  Future<void> addFavorite(String cityName) async {
+    if (cityName.isEmpty) {
+      throw Exception('Stadtname darf nicht leer sein.');
+    }
+
+    try {
+      final existingFavorites = await getFavorites();
+      if (!existingFavorites.contains(cityName)) {
+        final db = await initializeDB();
+        await db.insert(
+          'favorites',
+          {'city': cityName},
+          conflictAlgorithm: ConflictAlgorithm.ignore,
+        );
+      }
+    } catch (e) {
+      throw Exception('Fehler beim Hinzufügen zu den Favoriten: $e');
+    }
+  }
+
+  Future<void> removeFavorite(String cityName) async {
+    try {
+      final db = await initializeDB();
+      await db.delete('favorites', where: 'city = ?', whereArgs: [cityName]);
+    } catch (e) {
+      throw Exception('Fehler beim Entfernen aus den Favoriten: $e');
+    }
+  }
+
   Future<List<String>> getFavorites() async {
-    await _initPrefs();
-    return _prefs?.getStringList(_favoritesKey) ?? [];
-  }
-
-  // Favorit hinzufügen
-  Future<bool> addFavorite(String city) async {
-    await _initPrefs();
-    final favorites = Set<String>.from(await getFavorites());
-    final added = favorites.add(city);
-
-    if (added) {
-      await _prefs?.setStringList(_favoritesKey, favorites.toList());
+    try {
+      final db = await initializeDB();
+      final List<Map<String, dynamic>> queryResult = await db.query('favorites');
+      return queryResult.map((e) => e['city'] as String).toList();
+    } catch (e) {
+      throw Exception('Fehler beim Abrufen der Favoriten: $e');
     }
-    return added; // Gibt true zurück, wenn erfolgreich hinzugefügt
-  }
-
-  // Favorit entfernen
-  Future<bool> removeFavorite(String city) async {
-    await _initPrefs();
-    final favorites = Set<String>.from(await getFavorites());
-    final removed = favorites.remove(city);
-
-    if (removed) {
-      await _prefs?.setStringList(_favoritesKey, favorites.toList());
-    }
-    return removed; // Gibt true zurück, wenn erfolgreich entfernt
-  }
-
-  // Favoriten löschen
-  Future<void> clearFavorites() async {
-    await _initPrefs();
-    await _prefs?.remove(_favoritesKey);
   }
 }
-
-
 
 

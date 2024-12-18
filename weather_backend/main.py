@@ -9,3 +9,5 @@ app.include_router(weather_router)
 @app.get("/")
 def root():
     return {"message": "Welcome to the Weather API"}
+
+# uvicorn main:app --reload

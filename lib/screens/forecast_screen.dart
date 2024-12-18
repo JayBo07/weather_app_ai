@@ -1,132 +1,97 @@
+
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import '../services/api_service.dart';
-import '../utils/helpers.dart';
-import '../widgets/weather_chart.dart';
 
 class ForecastScreen extends StatefulWidget {
-  final String city;
-
-  const ForecastScreen({required this.city});
+  const ForecastScreen({super.key});
 
   @override
   _ForecastScreenState createState() => _ForecastScreenState();
 }
 
 class _ForecastScreenState extends State<ForecastScreen> {
-  final ApiService apiService = ApiService();
-  List<dynamic>? forecastData;
+  List<Map<String, dynamic>> forecastData = [];
   bool isLoading = true;
-  String? errorMessage;
+  String errorMessage = "";
 
   @override
   void initState() {
     super.initState();
-    fetchForecastData();
+    fetchForecast();
   }
 
-  void fetchForecastData() async {
+  void fetchForecast() async {
     try {
-      final data = await apiService.fetchForecast(widget.city);
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+      final city = "${position.latitude},${position.longitude}";
+      final data = await ApiService().fetch7DayForecast(city);
+
+      if (data.isEmpty || data.any((day) => day['day'] == null)) {
+        setState(() {
+          errorMessage = "Ungültige Vorhersagedaten erhalten.";
+          isLoading = false;
+        });
+        return;
+      }
+
       setState(() {
         forecastData = data;
         isLoading = false;
       });
     } catch (e) {
       setState(() {
-        errorMessage = "Fehler beim Laden der Vorhersage.";
+        errorMessage = "Fehler beim Abrufen der Vorhersagedaten: ${e.toString()}";
         isLoading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Fehler: ${e.toString()}")),
-      );
     }
+  }
+
+  Widget buildForecastTile(Map<String, dynamic> day) {
+    return ListTile(
+      leading: Image.asset(
+        'assets/icons/${day['icon']}.png',
+        errorBuilder: (context, error, stackTrace) =>
+        const Icon(Icons.wb_cloudy, color: Colors.blue, size: 40),
+      ),
+      title: Text(day['day'] ?? "Unbekannter Tag"),
+      subtitle: Text('Min: ${day['minTemp']}°C | Max: ${day['maxTemp']}°C'),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text("7-Tage-Vorhersage")),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (errorMessage.isNotEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text("7-Tage-Vorhersage")),
+        body: Center(
+          child: Text(
+            errorMessage,
+            style: const TextStyle(color: Colors.red),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text("7-Tage Vorhersage für ${widget.city}"),
-        centerTitle: true,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blueAccent, Colors.lightBlueAccent],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-      ),
-      body: isLoading
-          ? Center(child: CircularProgressIndicator())
-          : errorMessage != null
-          ? Center(
-        child: Text(
-          errorMessage!,
-          style: TextStyle(color: Colors.red, fontSize: 16),
-        ),
-      )
-          : _buildForecastContent(),
-    );
-  }
-
-  Widget _buildForecastContent() {
-    return Padding(
-      padding: const EdgeInsets.all(12.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            "Temperaturverlauf",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 10),
-          Expanded(
-            flex: 2,
-            child: WeatherChart(forecastData: forecastData!),
-          ),
-          SizedBox(height: 20),
-          Expanded(
-            flex: 3,
-            child: ListView.separated(
-              itemCount: forecastData!.length ~/ 8,
-              separatorBuilder: (context, index) => Divider(),
-              itemBuilder: (context, index) {
-                final item = forecastData![index * 8];
-                return _buildForecastTile(item);
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildForecastTile(dynamic item) {
-    return Card(
-      elevation: 3,
-      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 5),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: ListTile(
-        leading: Image.asset(
-          getWeatherIcon(item['weather'][0]['main']),
-          width: 40,
-          height: 40,
-        ),
-        title: Text(
-          "${item['dt_txt'].split(' ')[0]}",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text(
-          "${item['main']['temp']}°C - ${item['weather'][0]['description']}",
-          style: TextStyle(fontSize: 16),
-        ),
-        trailing: Icon(Icons.chevron_right, color: Colors.blueAccent),
+      appBar: AppBar(title: const Text("7-Tage-Vorhersage")),
+      body: ListView.builder(
+        itemCount: forecastData.length,
+        itemBuilder: (context, index) => buildForecastTile(forecastData[index]),
       ),
     );
   }
 }
+
+
 
 

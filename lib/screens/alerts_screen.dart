@@ -4,7 +4,7 @@ import 'package:intl/intl.dart'; // Für bessere Datumsformatierung
 class AlertsScreen extends StatefulWidget {
   final List<dynamic> alerts;
 
-  AlertsScreen({required this.alerts});
+  const AlertsScreen({super.key, required this.alerts});
 
   @override
   _AlertsScreenState createState() => _AlertsScreenState();
@@ -22,7 +22,7 @@ class _AlertsScreenState extends State<AlertsScreen>
     // Initialisiere AnimationController
     _animationController = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 800),
     );
 
     // Definiere Fade-Animation
@@ -41,19 +41,144 @@ class _AlertsScreenState extends State<AlertsScreen>
     super.dispose();
   }
 
+  void refreshAnimation() {
+    _animationController.reset();
+    _animationController.forward();
+  }
+
   // Hilfsfunktion für Datumsformatierung
-  String formatDate(int? timestamp) {
+  String formatTimestamp(int? timestamp, {String format = 'dd.MM.yyyy HH:mm'}) {
     if (timestamp == null || timestamp == 0) return "Unbekannte Zeit";
-    return DateFormat('dd.MM.yyyy HH:mm').format(
+    return DateFormat(format).format(
       DateTime.fromMillisecondsSinceEpoch(timestamp * 1000),
     );
   }
 
+  // Farbe basierend auf der Schwere
+  Color _getSeverityColor(String severity) {
+    const Map<String, Color> severityColors = {
+      'hoch': Colors.red,
+      'mittel': Colors.orange,
+      'niedrig': Colors.yellow,
+      'default': Colors.blue,
+    };
+    return severityColors[severity.toLowerCase()] ?? severityColors['default']!;
+  }
+
+  // Icon basierend auf der Schwere
+  IconData _getSeverityIcon(String severity) {
+    switch (severity.toLowerCase()) {
+      case 'hoch':
+        return Icons.warning;
+      case 'mittel':
+        return Icons.error_outline;
+      case 'niedrig':
+        return Icons.info_outline;
+      default:
+        return Icons.notifications;
+    }
+  }
+
+  List<Widget> _buildAlerts() {
+    return widget.alerts.map((alert) {
+      if (alert == null || !alert.containsKey('start') || !alert.containsKey('description')) {
+        return const ListTile(
+          title: Text("Ungültige Warnung"),
+          subtitle: Text("Einige Daten fehlen."),
+        );
+      }
+
+      final severity = alert['severity'] ?? 'Unbekannt';
+      final description = alert['description'] ?? 'Keine Beschreibung';
+
+      return Card(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 4,
+        color: _getSeverityColor(severity), // Hintergrundfarbe
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Titelzeile mit Icon
+              Row(
+                children: [
+                  Icon(_getSeverityIcon(severity),
+                      color: Colors.white, size: 36),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      severity,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              // Beschreibung
+              Text(
+                description,
+                style: const TextStyle(fontSize: 16, height: 1.5, color: Colors.white),
+              ),
+              const SizedBox(height: 10),
+
+              // Zeitangaben
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Startzeit: ${formatTimestamp(alert['start'])}",
+                    style: const TextStyle(
+                        fontSize: 14, color: Colors.white70),
+                  ),
+                  Text(
+                    "Endzeit: ${formatTimestamp(alert['end'])}",
+                    style: const TextStyle(
+                        fontSize: 14, color: Colors.white70),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (widget.alerts.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text("Wetterwarnungen"),
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.notifications_off, size: 50, color: Colors.grey),
+              SizedBox(height: 10),
+              Text(
+                "Keine Warnungen verfügbar.",
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           "Wetterwarnungen",
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
@@ -62,80 +187,11 @@ class _AlertsScreenState extends State<AlertsScreen>
       ),
       body: FadeTransition(
         opacity: _fadeAnimation,
-        child: widget.alerts.isEmpty
-            ? Center(
-          child: Text(
-            "Keine aktuellen Warnungen",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-        )
-            : ListView.builder(
-          itemCount: widget.alerts.length,
-          itemBuilder: (context, index) {
-            final alert = widget.alerts[index];
-            return Card(
-              margin: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              elevation: 4,
-              color: Colors.yellow[50], // Hintergrundfarbe
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Titelzeile mit Icon
-                    Row(
-                      children: [
-                        Icon(Icons.warning_amber_rounded,
-                            color: Colors.redAccent, size: 36),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            alert['title'] ?? "Unbenannte Warnung",
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.redAccent,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 10),
-
-                    // Beschreibung
-                    Text(
-                      alert['description'] ??
-                          "Keine Beschreibung verfügbar",
-                      style: TextStyle(fontSize: 16, height: 1.5),
-                    ),
-                    SizedBox(height: 10),
-
-                    // Zeitangaben
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "Startzeit: ${formatDate(alert['start'])}",
-                          style: TextStyle(
-                              fontSize: 14, color: Colors.grey[700]),
-                        ),
-                        Text(
-                          "Endzeit: ${formatDate(alert['end'])}",
-                          style: TextStyle(
-                              fontSize: 14, color: Colors.grey[700]),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
+        child: ListView(
+          children: _buildAlerts(),
         ),
       ),
     );
   }
 }
+

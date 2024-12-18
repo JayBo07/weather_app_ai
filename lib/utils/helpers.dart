@@ -1,45 +1,64 @@
-import 'constants.dart';
+import 'package:flutter/services.dart';
 
-String getBackgroundImage(String? description) {
-  if (description == null || description.isEmpty) {
-    return AssetPaths.defaultWeather;
-  }
+/// Klasse mit konstanten Asset-Pfaden
+class AssetPaths {
+  static const String cloudy = 'assets/images/cloudy.png';
+  static const String rainy = 'assets/images/rainy.png';
+  static const String snowy = 'assets/images/snowy.png';
+  static const String sunny = 'assets/images/sunny.png';
+  static const String foggy = 'assets/images/foggy.png';
+  static const String thunderstorm = 'assets/images/thunderstorm.png';
+  static const String drizzle = 'assets/images/drizzle.png';
+  static const String defaultWeather = 'assets/images/default_weather.png';
+  static const String defaultIconPath = 'assets/images/default_icon.png';
+}
 
-  final lowerCaseDescription = description.toLowerCase();
-  if (lowerCaseDescription.contains("cloud")) {
-    return AssetPaths.cloudy;
-  } else if (lowerCaseDescription.contains("rain")) {
-    return AssetPaths.rainy;
-  } else if (lowerCaseDescription.contains("snow")) {
-    return AssetPaths.snowy;
-  } else if (lowerCaseDescription.contains("clear")) {
-    return AssetPaths.sunny;
-  } else if (lowerCaseDescription.contains("mist") ||
-      lowerCaseDescription.contains("fog")) {
-    return AssetPaths.foggy;
-  } else {
-    return AssetPaths.defaultWeather;
+/// Überprüft, ob ein Asset existiert
+Future<bool> doesAssetExist(String path) async {
+  try {
+    await rootBundle.load(path);
+    return true;
+  } catch (_) {
+    return false;
   }
 }
 
-String getWeatherIcon(String? main) {
-  if (main == null || main.isEmpty) {
-    return AssetPaths.defaultWeather;
-  }
+/// Gemeinsame Logik für die Zuordnung von Wetterbedingungen zu Asset-Pfaden
+Future<String> _getAssetPath(
+    String? key, Map<String, String> assetMap, String defaultPath) async {
+  if (key == null || key.isEmpty) return defaultPath;
 
-  switch (main.toLowerCase()) {
-    case "clouds":
-      return "assets/icons/cloudy.png";
-    case "rain":
-      return "assets/icons/rainy.png";
-    case "snow":
-      return "assets/icons/snowy.png";
-    case "clear":
-      return "assets/icons/sunny.png";
-    case "mist":
-    case "fog":
-      return "assets/icons/misty.png";
-    default:
-      return "assets/icons/default.png";
-  }
+  final path = assetMap[key.toLowerCase()] ?? defaultPath;
+  return await doesAssetExist(path) ? path : defaultPath;
 }
+
+/// Hintergrundbild basierend auf der Beschreibung abrufen
+Future<String> getBackgroundImage(String? description) async {
+  const Map<String, String> assetMap = {
+    "cloud": AssetPaths.cloudy,
+    "rain": AssetPaths.rainy,
+    "snow": AssetPaths.snowy,
+    "clear": AssetPaths.sunny,
+    "mist": AssetPaths.foggy,
+    "fog": AssetPaths.foggy,
+  };
+  return _getAssetPath(description, assetMap, AssetPaths.defaultWeather);
+}
+
+/// Wetter-Icon basierend auf der Hauptbeschreibung abrufen
+Future<String> getWeatherIcon(String? main) async {
+  const Map<String, String> assetMap = {
+    "clouds": AssetPaths.cloudy,
+    "rain": AssetPaths.rainy,
+    "snow": AssetPaths.snowy,
+    "clear": AssetPaths.sunny,
+    "mist": AssetPaths.foggy,
+    "fog": AssetPaths.foggy,
+    "thunderstorm": AssetPaths.thunderstorm,
+    "drizzle": AssetPaths.drizzle,
+  };
+  return _getAssetPath(main, assetMap, AssetPaths.defaultIconPath);
+}
+
+
+

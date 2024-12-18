@@ -1,64 +1,111 @@
 import 'package:flutter/material.dart';
-import '../utils/constants.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+final lightTheme = ThemeData(
+  brightness: Brightness.light,
+  colorScheme: ColorScheme.fromSwatch(
+    primarySwatch: Colors.blue,
+  ).copyWith(
+    secondary: Colors.blueAccent,
+    surface: Colors.grey[100]!,
+    error: Colors.red,
+    onPrimary: Colors.white,
+    onSecondary: Colors.black,
+  ),
+  textTheme: const TextTheme(
+    headlineLarge: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+    bodyLarge: TextStyle(fontSize: 16),
+    bodyMedium: TextStyle(color: Colors.black), // Textfarbe für Hauptinhalt
+  ),
+  elevatedButtonTheme: ElevatedButtonThemeData(
+    style: ElevatedButton.styleFrom(
+      backgroundColor: Colors.blueAccent, // Ersetzt primary
+      foregroundColor: Colors.white, // Ersetzt onPrimary
+    ),
+  ),
+  appBarTheme: const AppBarTheme(
+    backgroundColor: Colors.blue,
+    foregroundColor: Colors.white,
+    elevation: 2,
+  ),
+  inputDecorationTheme: InputDecorationTheme(
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: const BorderSide(color: Colors.grey),
+    ),
+  ),
+  cardTheme: const CardTheme(
+    margin: EdgeInsets.all(8),
+    elevation: 4,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(10)),
+    ),
+  ),
+);
 
-class AppThemes {
-  static final ThemeData lightTheme = ThemeData(
-    primaryColor: Color(AppColors.primary),
-    scaffoldBackgroundColor: Colors.white,
-    appBarTheme: AppBarTheme(
-      color: Color(AppColors.primary),
-      titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-      iconTheme: IconThemeData(color: Colors.white),
+final darkTheme = ThemeData(
+  brightness: Brightness.dark,
+  colorScheme: ColorScheme.fromSwatch(
+    primarySwatch: Colors.blue,
+  ).copyWith(
+    secondary: Colors.blueAccent,
+    surface: Colors.grey[800]!,
+    error: Colors.red,
+    onPrimary: Colors.white,
+    onSecondary: Colors.black,
+  ),
+  textTheme: const TextTheme(
+    headlineLarge: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+    bodyLarge: TextStyle(fontSize: 16),
+    bodyMedium: TextStyle(color: Colors.white), // Textfarbe für Hauptinhalt
+  ),
+  elevatedButtonTheme: ElevatedButtonThemeData(
+    style: ElevatedButton.styleFrom(
+      backgroundColor: Colors.grey, // Ersetzt primary
+      foregroundColor: Colors.white, // Ersetzt onPrimary
     ),
-    textTheme: TextTheme(
-      displayLarge: TextStyle(
-          fontSize: 32, fontWeight: FontWeight.bold, color: Colors.black),
-      bodyLarge: TextStyle(fontSize: 16, color: Colors.black87),
+  ),
+  appBarTheme: const AppBarTheme(
+    backgroundColor: Colors.black,
+    foregroundColor: Colors.white,
+    elevation: 2,
+  ),
+  inputDecorationTheme: InputDecorationTheme(
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: const BorderSide(color: Colors.grey),
     ),
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Color(AppColors.primary),
-        foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
+  ),
+  cardTheme: const CardTheme(
+    margin: EdgeInsets.all(8),
+    elevation: 4,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(10)),
     ),
-    iconTheme: IconThemeData(color: Color(AppColors.primary)),
-  );
+  ),
+);
 
-  static final ThemeData darkTheme = ThemeData(
-    brightness: Brightness.dark,
-    primaryColor: Color(AppColors.primary),
-    scaffoldBackgroundColor: Colors.black,
-    appBarTheme: AppBarTheme(
-      color: Colors.black,
-      titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-      iconTheme: IconThemeData(color: Colors.white),
-    ),
-    textTheme: TextTheme(
-      displayLarge: TextStyle(
-          fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
-      bodyLarge: TextStyle(fontSize: 16, color: Colors.white70),
-    ),
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Color(AppColors.primary),
-        foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    ),
-    iconTheme: IconThemeData(color: Colors.white),
-  );
-}
-
-// Dynamischer Wechsel zwischen Themes
-class ThemeNotifier with ChangeNotifier {
-  ThemeData _currentTheme = AppThemes.lightTheme;
+class ThemeProvider extends ChangeNotifier {
+  ThemeData _currentTheme = lightTheme;
 
   ThemeData get currentTheme => _currentTheme;
 
-  void switchTheme(bool isDarkMode) {
-    _currentTheme = isDarkMode ? AppThemes.darkTheme : AppThemes.lightTheme;
+  // Lade gespeichertes Theme
+  Future<void> loadTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isDarkMode = prefs.getBool('isDarkMode') ?? false;
+    _currentTheme = isDarkMode ? darkTheme : lightTheme;
+    notifyListeners();
+  }
+
+  // Wechsel zwischen Themes
+  void toggleTheme() async {
+    _currentTheme = _currentTheme == lightTheme ? darkTheme : lightTheme;
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setBool('isDarkMode', _currentTheme == darkTheme);
     notifyListeners();
   }
 }
+
+
+

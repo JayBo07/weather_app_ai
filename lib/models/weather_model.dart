@@ -1,32 +1,26 @@
-class WeatherModel {
-  final double temperature;
-  final String description;
-  final int humidity;
-  final double windSpeed;
-  final String city;
+String translateDescription(String description, String language) {
+  const translations = {
+    'clear sky': {'de': 'Klarer Himmel', 'es': 'Cielo despejado'},
+    'few clouds': {'de': 'Wenige Wolken', 'es': 'Pocas nubes'},
+    'scattered clouds': {'de': 'Aufgelockerte Wolken', 'es': 'Nubes dispersas'},
+    'rain': {'de': 'Regen', 'es': 'Lluvia'},
+    'thunderstorm': {'de': 'Gewitter', 'es': 'Tormenta'},
+    'snow': {'de': 'Schnee', 'es': 'Nieve'},
+    'mist': {'de': 'Nebel', 'es': 'Niebla'},
+    // Weitere Übersetzungen hinzufügen...
+  };
 
-  WeatherModel({
-    required this.temperature,
-    required this.description,
-    required this.humidity,
-    required this.windSpeed,
-    required this.city,
-  });
-
-  // JSON-Daten in WeatherModel umwandeln
-  factory WeatherModel.fromJson(Map<String, dynamic> json) {
-    return WeatherModel(
-      temperature: json['main']['temp']?.toDouble() ?? 0.0,
-      description: json['weather'][0]['description'] ?? 'Keine Beschreibung',
-      humidity: json['main']['humidity']?.toInt() ?? 0,
-      windSpeed: json['wind']['speed']?.toDouble() ?? 0.0,
-      city: json['name'] ?? 'Unbekannte Stadt',
-    );
+  // Prüfe, ob die Beschreibung in der Übersetzungskarte existiert
+  final translationMap = translations[description.toLowerCase()];
+  if (translationMap != null) {
+    return translationMap[language] ?? description;
   }
 
-  // Wettervorhersage-Liste deserialisieren
-  static List<WeatherModel> fromForecastJson(List<dynamic> list) {
-    return list.map((item) => WeatherModel.fromJson(item)).toList();
-  }
+  // Rückgabe der ursprünglichen Beschreibung, falls keine Übersetzung verfügbar ist
+  return description;
 }
+
+
+
+
 

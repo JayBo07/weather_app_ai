@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../services/api_service.dart';
+import '../models/weather_model.dart';
+import '../themes/themes.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,10 +13,11 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String currentLocation = "Aktueller Standort";
-  Map<String, dynamic>? currentWeather;
+  WeatherModel? currentWeather;
   String backgroundAsset = "assets/default_weather.png";
   String errorMessage = "";
   bool isLoading = true;
+  late ThemeProvider _themeProvider;
 
   @override
   void initState() {
@@ -33,14 +36,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void fetchCurrentLocation() async {
+  Future<void> fetchCurrentLocation() async {
     try {
       await checkLocationPermission();
       Position position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       );
       currentLocation = "${position.latitude},${position.longitude}";
-      fetchCurrentWeather();
+      await fetchCurrentWeather();
     } catch (e) {
       setState(() {
         errorMessage = "Fehler beim Abrufen des Standorts: Bitte überprüfe deine Berechtigungen.";
@@ -49,15 +52,19 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void fetchCurrentWeather() async {
+  Future<void> fetchCurrentWeather() async {
     setState(() {
       isLoading = true;
     });
     try {
       final weatherData = await ApiService().fetchWeatherByCity(currentLocation);
+
+      // Set the theme based on the weather condition
+      _themeProvider.setWeatherTheme(weatherData.condition.toLowerCase());
+
       setState(() {
         currentWeather = weatherData;
-        backgroundAsset = getBackgroundAsset(weatherData['icon']);
+        backgroundAsset = getBackgroundAsset(weatherData.icon);
         errorMessage = "";
       });
     } catch (e) {
@@ -98,9 +105,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget buildWeatherInfo() {
     return Column(
       children: [
-        Text("${currentWeather!['temperature']}°C",
+        Text("${currentWeather!.temperature}°C",
             style: const TextStyle(fontSize: 40, color: Colors.white)),
-        Text("${currentWeather!['description']}",
+        Text(currentWeather!.condition,
             style: const TextStyle(fontSize: 20, color: Colors.white)),
       ],
     );
@@ -118,6 +125,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _themeProvider = ThemeProvider(); // Initialize ThemeProvider
+
     if (isLoading) {
       return Scaffold(
         appBar: AppBar(title: const Text("Wetter App")),
@@ -149,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  onSubmitted: (value) {
+                  onSubmitted: (value) async {
                     if (value.trim().isEmpty) {
                       setState(() {
                         errorMessage = "Bitte gib einen gültigen Stadtnamen ein.";
@@ -157,18 +166,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       return;
                     }
 
-                    ApiService().fetchWeatherByCity(value).then((weatherData) {
+                    try {
+                      final weatherData = await ApiService().fetchWeatherByCity(value);
+
+                      // Set the theme based on the weather condition
+                      _themeProvider.setWeatherTheme(weatherData.condition.toLowerCase());
+
                       setState(() {
                         currentLocation = value;
                         currentWeather = weatherData;
-                        backgroundAsset = getBackgroundAsset(weatherData['icon']);
+                        backgroundAsset = getBackgroundAsset(weatherData.icon);
                         errorMessage = "";
                       });
-                    }).catchError((e) {
+                    } catch (e) {
                       setState(() {
                         errorMessage = "Ort nicht gefunden. Bitte erneut versuchen.";
                       });
-                    });
+                    }
                   },
                 ),
               ),
@@ -181,6 +195,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
+
 
 
 

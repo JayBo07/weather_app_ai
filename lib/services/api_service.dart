@@ -1,77 +1,100 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'dart:io';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import '../models/weather_model.dart';
 
 class ApiService {
-  final String apiKey = dotenv.env['API_KEY'] ?? '';
+  final String _apiKey = dotenv.env['API_KEY']!;
+  final String _baseUrl = 'https://api.openweathermap.org/data/2.5';
 
-  ApiService() {
-    if (apiKey.isEmpty) {
-      throw Exception('API-Schlüssel nicht gefunden. Bitte überprüfe deine Konfiguration.');
+  Future<WeatherModel> fetchWeatherByCity(String city) async {
+    final url = Uri.parse('$_baseUrl/weather?q=$city&appid=$_apiKey&units=metric');
+
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        await _saveToCache('weather_$city.json', {
+          'timestamp': DateTime.now().toIso8601String(),
+          'data': data,
+        });
+        return WeatherModel.fromJson(data);
+      } else {
+        throw Exception('Failed to fetch weather data: ${response.statusCode}');
+      }
+    } catch (e) {
+      // Try to load data from cache in case of an error
+      final cachedData = await _loadFromCache('weather_$city.json');
+      if (cachedData != null) {
+        if (_isCacheValid(cachedData['timestamp'])) {
+          return WeatherModel.fromJson(cachedData['data']);
+        } else {
+          throw Exception('Cache is outdated');
+        }
+      }
+      throw Exception('Error fetching weather data: $e');
     }
   }
 
-  final String baseUrl = 'https://api.openweathermap.org/data/2.5';
+  Future<List<WeatherModel>> fetch7DayForecast(String city) async {
+    final url = Uri.parse('$_baseUrl/forecast?q=$city&appid=$_apiKey&units=metric');
 
-  Future<Map<String, dynamic>> fetchWeatherByCity(String city) async {
-    if (city.trim().isEmpty) {
-      throw Exception('Stadtname darf nicht leer sein.');
-    }
-
-    final url = Uri.parse('$baseUrl/weather?q=$city&appid=$apiKey&units=metric');
     try {
       final response = await http.get(url);
-
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return {
-          'temperature': data['main']['temp'],
-          'description': data['weather'][0]['description'],
-          'icon': data['weather'][0]['icon'],
-          'minTemp': data['main']['temp_min'],
-          'maxTemp': data['main']['temp_max'],
-        };
-      } else if (response.statusCode == 404) {
-        throw Exception('Stadt nicht gefunden. Bitte überprüfe den Namen.');
+        final data = json.decode(response.body);
+        final List<dynamic> forecastList = data['list'];
+        await _saveToCache('forecast_$city.json', {
+          'timestamp': DateTime.now().toIso8601String(),
+          'data': data,
+        });
+        return forecastList.map((day) => WeatherModel.fromJson(day)).toList();
       } else {
-        throw Exception('Unerwarteter API-Fehler: ${response.statusCode}');
+        throw Exception('Failed to fetch forecast data: ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Netzwerkfehler: Bitte überprüfe deine Verbindung.');
+      // Try to load data from cache in case of an error
+      final cachedData = await _loadFromCache('forecast_$city.json');
+      if (cachedData != null) {
+        if (_isCacheValid(cachedData['timestamp'])) {
+          final List<dynamic> forecastList = cachedData['data']['list'];
+          return forecastList.map((day) => WeatherModel.fromJson(day)).toList();
+        } else {
+          throw Exception('Cache is outdated');
+        }
+      }
+      throw Exception('Error fetching forecast data: $e');
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetch7DayForecast(String city) async {
-    if (city.trim().isEmpty) {
-      throw Exception('Stadtname darf nicht leer sein.');
-    }
-
-    final url = Uri.parse('$baseUrl/forecast?q=$city&appid=$apiKey&units=metric');
+  Future<void> _saveToCache(String fileName, dynamic data) async {
     try {
-      final response = await http.get(url);
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/$fileName');
+      await file.writeAsString(json.encode(data));
+    } catch (e) {
+      // Log cache save errors silently
+    }
+  }
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final List forecast = data['list'];
-        return forecast.map((item) {
-          return {
-            'day': item['dt_txt'],
-            'minTemp': item['main']['temp_min'],
-            'maxTemp': item['main']['temp_max'],
-            'icon': item['weather'][0]['icon'],
-          };
-        }).toList();
-      } else if (response.statusCode == 404) {
-        throw Exception('Stadt nicht gefunden. Bitte überprüfe den Namen.');
-      } else {
-        throw Exception('Unerwarteter API-Fehler: ${response.statusCode}');
+  Future<Map<String, dynamic>?> _loadFromCache(String fileName) async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/$fileName');
+      if (await file.exists()) {
+        final data = await file.readAsString();
+        return json.decode(data) as Map<String, dynamic>;
       }
     } catch (e) {
-      throw Exception('Netzwerkfehler: Bitte überprüfe deine Verbindung.');
+      // Log cache load errors silently
     }
+    return null;
+  }
+
+  bool _isCacheValid(String timestamp) {
+    final cacheTime = DateTime.parse(timestamp);
+    return DateTime.now().difference(cacheTime).inHours <= 1;
   }
 }
-
-
-
-

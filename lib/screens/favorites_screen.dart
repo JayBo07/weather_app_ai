@@ -12,6 +12,7 @@ class FavoritesScreen extends StatefulWidget {
 class _FavoritesScreenState extends State<FavoritesScreen> {
   List<String> favoriteCities = [];
   Map<String, dynamic> weatherData = {};
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -21,11 +22,21 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
   void loadFavorites() async {
     final service = FavoriteService();
-    final cities = await service.getFavorites();
-    setState(() {
-      favoriteCities = cities;
-    });
-    loadWeatherForAllCities();
+    try {
+      final cities = await service.getFavorites();
+      setState(() {
+        favoriteCities = cities;
+        isLoading = false;
+      });
+      loadWeatherForAllCities();
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Fehler beim Laden der Favoriten.")),
+        );
+      });
+    }
   }
 
   void loadWeatherForAllCities() async {
@@ -53,11 +64,20 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       return;
     }
     final service = FavoriteService();
-    await service.addFavorite(city);
-    setState(() {
-      favoriteCities.add(city);
-      fetchWeatherForCity(city);
-    });
+    try {
+      await service.addFavorite(city);
+      setState(() {
+        favoriteCities.add(city);
+        fetchWeatherForCity(city);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("$city wurde zu den Favoriten hinzugefügt.")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Fehler beim Hinzufügen der Stadt.")),
+      );
+    }
   }
 
   void fetchWeatherForCity(String city) async {
@@ -75,11 +95,20 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
   void removeFavorite(String city) async {
     final service = FavoriteService();
-    await service.removeFavorite(city);
-    setState(() {
-      favoriteCities.remove(city);
-      weatherData.remove(city);
-    });
+    try {
+      await service.removeFavorite(city);
+      setState(() {
+        favoriteCities.remove(city);
+        weatherData.remove(city);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("$city wurde aus den Favoriten entfernt.")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Fehler beim Entfernen der Stadt.")),
+      );
+    }
   }
 
   void showAddFavoriteDialog() {
@@ -122,36 +151,46 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       appBar: AppBar(
         title: const Text("Favoriten"),
       ),
-      body: favoriteCities.isEmpty
+      body: isLoading
           ? const Center(child: CircularProgressIndicator())
+          : favoriteCities.isEmpty
+          ? const Center(
+        child: Text(
+          "Keine Favoriten gefunden.",
+          style: TextStyle(fontSize: 16),
+        ),
+      )
           : ListView.builder(
         itemCount: favoriteCities.length,
         itemBuilder: (context, index) {
           final city = favoriteCities[index];
           final cityWeather = weatherData[city];
-          return ListTile(
-            title: Text(city),
-            subtitle: cityWeather != null
-                ? (cityWeather['error'] != null
-                ? Text(cityWeather['error'])
-                : Text(
-                "${cityWeather['temperature']}°C - ${cityWeather['description']}"))
-                : const Row(
-              children: [
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                SizedBox(width: 8),
-                Text("Wird geladen..."),
-              ],
-            ),
-            trailing: IconButton(
-              icon: const Icon(Icons.delete),
-              onPressed: () {
-                removeFavorite(city);
-              },
+          return Card(
+            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            child: ListTile(
+              title: Text(city),
+              subtitle: cityWeather != null
+                  ? (cityWeather['error'] != null
+                  ? Text(cityWeather['error'])
+                  : Text(
+                  "${cityWeather['temperature']}°C - ${cityWeather['description']}"))
+                  : const Row(
+                children: [
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(width: 8),
+                  Text("Wird geladen..."),
+                ],
+              ),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete),
+                onPressed: () {
+                  removeFavorite(city);
+                },
+              ),
             ),
           );
         },
@@ -163,5 +202,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     );
   }
 }
+
 
 

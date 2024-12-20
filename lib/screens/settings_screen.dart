@@ -12,7 +12,11 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool isFahrenheit = false;
   bool isDarkMode = false;
+  String selectedLanguage = 'Deutsch';
+  String defaultCity = '';
   bool isLoading = true;
+
+  final List<String> supportedLanguages = ['Deutsch', 'Englisch'];
 
   @override
   void initState() {
@@ -25,13 +29,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       isFahrenheit = prefs.getBool('isFahrenheit') ?? false;
       isDarkMode = prefs.getBool('isDarkMode') ?? false;
+      selectedLanguage = prefs.getString('language') ?? 'Deutsch';
+      defaultCity = prefs.getString('defaultCity') ?? '';
       isLoading = false;
     });
   }
 
-  void savePreferences(String key, bool value) async {
+  void savePreferences(String key, dynamic value) async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setBool(key, value);
+    if (value is bool) {
+      prefs.setBool(key, value);
+    } else if (value is String) {
+      prefs.setString(key, value);
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Einstellungen gespeichert")),
     );
@@ -41,6 +51,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
     savePreferences('isDarkMode', value);
     final themeNotifier = context.read<ThemeNotifier>();
     themeNotifier.setTheme(value ? ThemeMode.dark : ThemeMode.light);
+  }
+
+  void showCitySelectionDialog() {
+    final TextEditingController controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Standardort festlegen"),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(hintText: "Stadtname"),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text("Abbrechen"),
+            ),
+            TextButton(
+              onPressed: () {
+                final city = controller.text.trim();
+                if (city.isNotEmpty) {
+                  setState(() {
+                    defaultCity = city;
+                    savePreferences('defaultCity', city);
+                  });
+                }
+                Navigator.pop(context);
+              },
+              child: const Text("Speichern"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -58,7 +105,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: Column(
         children: [
           SwitchListTile(
-            title: const Text('Temperatur in Fahrenheit'),
+            title: const Text('Temperatur in Fahrenheit anzeigen'),
             value: isFahrenheit,
             onChanged: (value) {
               setState(() {
@@ -68,7 +115,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           SwitchListTile(
-            title: const Text('Dunkles Theme'),
+            title: const Text('Dunkles Theme aktivieren'),
             value: isDarkMode,
             onChanged: (value) {
               setState(() {
@@ -78,11 +125,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           ListTile(
-            title: const Text('Standardort festlegen'),
+            title: const Text('Sprache auswählen'),
+            subtitle: Text(selectedLanguage),
             trailing: const Icon(Icons.arrow_forward_ios),
             onTap: () {
-              // Navigiere zur Stadtwahl-Logik
+              showModalBottomSheet(
+                context: context,
+                builder: (BuildContext context) {
+                  return ListView(
+                    children: supportedLanguages.map((language) {
+                      return ListTile(
+                        title: Text(language),
+                        onTap: () {
+                          setState(() {
+                            selectedLanguage = language;
+                            savePreferences('language', language);
+                          });
+                          Navigator.pop(context);
+                        },
+                      );
+                    }).toList(),
+                  );
+                },
+              );
             },
+          ),
+          ListTile(
+            title: const Text('Standardort festlegen'),
+            subtitle: Text(defaultCity.isEmpty ? "Kein Standardort festgelegt" : defaultCity),
+            trailing: const Icon(Icons.arrow_forward_ios),
+            onTap: showCitySelectionDialog,
           ),
         ],
       ),
@@ -111,7 +183,15 @@ class PreferencesHelper {
     final prefs = await SharedPreferences.getInstance();
     prefs.setBool(key, value);
   }
+
+  static Future<String?> getString(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(key);
+  }
+
+  static Future<void> setString(String key, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString(key, value);
+  }
 }
-
-
 

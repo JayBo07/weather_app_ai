@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // Für bessere Datumsformatierung
+import 'package:intl/intl.dart';
 
 class AlertsScreen extends StatefulWidget {
   final List<dynamic> alerts;
@@ -194,4 +194,5 @@ class _AlertsScreenState extends State<AlertsScreen>
     );
   }
 }
+
 

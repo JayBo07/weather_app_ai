@@ -41,7 +41,9 @@ class SearchScreenState extends State<SearchScreen> {
         });
       } catch (e) {
         setState(() {
-          errorMessage = "Fehler beim Abrufen der Daten: ${e.toString()}";
+          errorMessage = e.toString().contains("404")
+              ? "Stadt nicht gefunden. Bitte überprüfe die Eingabe."
+              : "Fehler beim Abrufen der Daten: ${e.toString()}";
         });
       } finally {
         setState(() {
@@ -98,17 +100,23 @@ class SearchScreenState extends State<SearchScreen> {
                 )
               else if (searchResults.isNotEmpty)
                   Expanded(
-                    child: ListView.builder(
+                    child: ListView.separated(
                       itemCount: searchResults.length,
                       itemBuilder: (context, index) => SearchResultTile(result: searchResults[index]),
+                      separatorBuilder: (context, index) => const Divider(height: 1),
                     ),
                   )
                 else
-                  const Center(
-                    child: Text(
-                      "Keine Ergebnisse gefunden.",
-                      style: TextStyle(fontSize: 16),
-                    ),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.search_off, size: 50, color: Colors.grey),
+                      const SizedBox(height: 10),
+                      const Text(
+                        "Keine Ergebnisse gefunden.",
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                    ],
                   ),
             ],
           ),
@@ -124,7 +132,16 @@ class SearchScreenState extends State<SearchScreen> {
         hintText: "Stadt eingeben...",
         border: const OutlineInputBorder(),
         prefixIcon: const Icon(Icons.search),
-        suffixIcon: isLoading ? const CircularProgressIndicator(strokeWidth: 2) : null,
+        suffixIcon: isLoading
+            ? const Padding(
+          padding: EdgeInsets.all(10),
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        )
+            : null,
       ),
       onChanged: searchCity,
     );
@@ -174,4 +191,3 @@ class FadeInWidget extends StatelessWidget {
     );
   }
 }
-

@@ -5,43 +5,31 @@ version: 1.0.0+1
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
+  path_provider: ^2.0.11
   http: ^1.2.1
   flutter_dotenv: ^5.1.0
   shared_preferences: ^2.2.2
-  fl_chart: ^0.63.0
-  intl: ^0.18.1
+  fl_chart: ^0.70.0
+  intl: ^0.20.1
   provider: ^6.0.0
   geolocator: ^13.0.2
+  sqflite: ^2.0.0
+  path: ^1.8.2
 
-
-  sqflite: any
-  path: any
-  mockito: ^5.4.5
 dev_dependencies:
+  mockito: ^5.4.5
+  build_runner: ^2.3.3
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
+  flutter_lints: ^5.0.0
 
 flutter:
   uses-material-design: true
 
   assets:
-    - .env
-    - assets/cloudy.png
-    - assets/rainy.png
-    - assets/snowy.png
-    - assets/sunny.png
-    - assets/misty.png
-    - assets/default.png
-    - assets/default_weather.png
-    - assets/icons/cloudy.png
-    - assets/icons/rainy.png
-    - assets/icons/snowy.png
-    - assets/icons/sunny.png
-    - assets/icons/misty.png
-    - assets/icons/default.png
-    - assets/icons/default_weather.png
+    - assets/

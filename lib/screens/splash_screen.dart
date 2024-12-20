@@ -17,6 +17,9 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  bool showRetryButton = false;
+  String errorMessage = "";
+
   @override
   void initState() {
     super.initState();
@@ -25,12 +28,19 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> initializeApp() async {
     try {
+      setState(() {
+        showRetryButton = false;
+        errorMessage = "";
+      });
       // Simuliere Initialisierungen wie das Laden von Einstellungen
       await Future.delayed(const Duration(seconds: 3));
       navigateToHome();
     } catch (e) {
-      // Fehlerbehandlung (z.B. Loggen oder Fehlermeldung anzeigen)
-      print("Fehler während der Initialisierung: $e");
+      // Fehlerbehandlung mit Feedback-Mechanismus
+      setState(() {
+        showRetryButton = true;
+        errorMessage = "Fehler bei der Initialisierung: ${e.toString()}";
+      });
     }
   }
 
@@ -40,7 +50,7 @@ class _SplashScreenState extends State<SplashScreen> {
     } else {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()), // Ersetze durch deinen HomeScreen
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
       );
     }
   }
@@ -49,7 +59,7 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: GestureDetector(
-        onTap: navigateToHome, // Ermöglicht das Überspringen des Splash-Bildschirms
+        onTap: navigateToHome,
         child: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -73,9 +83,30 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                const CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
+                if (!showRetryButton)
+                  const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  )
+                else ...[
+                  ElevatedButton(
+                    onPressed: initializeApp,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text("Erneut versuchen"),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    errorMessage,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontStyle: FontStyle.italic,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
                 const SizedBox(height: 20),
                 const Text(
                   "Tippen zum Überspringen",
@@ -89,4 +120,5 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 }
+
 

@@ -11,6 +11,10 @@ class AssetPaths {
   static const String drizzle = 'assets/images/drizzle.png';
   static const String defaultWeather = 'assets/images/default_weather.png';
   static const String defaultIconPath = 'assets/images/default_icon.png';
+
+  /// Dynamische Erweiterung für Nacht-Assets
+  static const String nightClear = 'assets/images/night_clear.png';
+  static const String nightCloudy = 'assets/images/night_cloudy.png';
 }
 
 /// Überprüft, ob ein Asset existiert
@@ -41,6 +45,8 @@ Future<String> getBackgroundImage(String? description) async {
     "clear": AssetPaths.sunny,
     "mist": AssetPaths.foggy,
     "fog": AssetPaths.foggy,
+    "night_clear": AssetPaths.nightClear,
+    "night_cloudy": AssetPaths.nightCloudy,
   };
   return _getAssetPath(description, assetMap, AssetPaths.defaultWeather);
 }
@@ -56,9 +62,22 @@ Future<String> getWeatherIcon(String? main) async {
     "fog": AssetPaths.foggy,
     "thunderstorm": AssetPaths.thunderstorm,
     "drizzle": AssetPaths.drizzle,
+    "night_clear": AssetPaths.nightClear,
+    "night_cloudy": AssetPaths.nightCloudy,
   };
   return _getAssetPath(main, assetMap, AssetPaths.defaultIconPath);
 }
+
+/// Unterstützte Sprachen für die App
+class SupportedLanguages {
+  static const List<String> languages = ["Deutsch", "Englisch", "Spanisch", "Französisch"];
+
+  /// Überprüft, ob eine Sprache unterstützt wird
+  static bool isLanguageSupported(String language) {
+    return languages.contains(language);
+  }
+}
+
 
 
 

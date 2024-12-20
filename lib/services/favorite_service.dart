@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -11,7 +14,7 @@ class FavoriteService {
       join(path, 'favorites.db'),
       onCreate: (database, version) async {
         await database.execute(
-          "CREATE TABLE favorites(id INTEGER PRIMARY KEY AUTOINCREMENT, city TEXT NOT NULL)",
+          "CREATE TABLE favorites(id INTEGER PRIMARY KEY AUTOINCREMENT, city TEXT NOT NULL, added_at TEXT NOT NULL)",
         );
       },
       version: 1,
@@ -25,15 +28,16 @@ class FavoriteService {
     }
 
     try {
-      final existingFavorites = await getFavorites();
-      if (!existingFavorites.contains(cityName)) {
-        final db = await initializeDB();
-        await db.insert(
-          'favorites',
-          {'city': cityName},
-          conflictAlgorithm: ConflictAlgorithm.ignore,
-        );
-      }
+      final db = await initializeDB();
+      await db.insert(
+        'favorites',
+        {
+          'city': cityName,
+          'added_at': DateTime.now().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+      await _updateCache();
     } catch (e) {
       throw Exception('Fehler beim Hinzufügen zu den Favoriten: $e');
     }
@@ -43,6 +47,7 @@ class FavoriteService {
     try {
       final db = await initializeDB();
       await db.delete('favorites', where: 'city = ?', whereArgs: [cityName]);
+      await _updateCache();
     } catch (e) {
       throw Exception('Fehler beim Entfernen aus den Favoriten: $e');
     }
@@ -52,11 +57,58 @@ class FavoriteService {
     try {
       final db = await initializeDB();
       final List<Map<String, dynamic>> queryResult = await db.query('favorites');
-      return queryResult.map((e) => e['city'] as String).toList();
+      final favorites = queryResult.map((e) => e['city'] as String).toList();
+      await _saveToCache(favorites);
+      return favorites;
     } catch (e) {
+      final cachedFavorites = await _loadFromCache();
+      if (cachedFavorites != null) {
+        return cachedFavorites;
+      }
       throw Exception('Fehler beim Abrufen der Favoriten: $e');
     }
   }
+
+  Future<void> _saveToCache(List<String> favorites) async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/favorites_cache.json');
+      await file.writeAsString(json.encode({
+        'timestamp': DateTime.now().toIso8601String(),
+        'favorites': favorites,
+      }));
+    } catch (e) {
+      // Log cache save errors silently
+    }
+  }
+
+  Future<List<String>?> _loadFromCache() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/favorites_cache.json');
+      if (await file.exists()) {
+        final data = json.decode(await file.readAsString()) as Map<String, dynamic>;
+        if (_isCacheValid(data['timestamp'])) {
+          return List<String>.from(data['favorites']);
+        }
+      }
+    } catch (e) {
+      // Log cache load errors silently
+    }
+    return null;
+  }
+
+  Future<void> _updateCache() async {
+    final favorites = await getFavorites();
+    await _saveToCache(favorites);
+  }
+
+  bool _isCacheValid(String timestamp) {
+    final cacheTime = DateTime.parse(timestamp);
+    return DateTime.now().difference(cacheTime).inHours <= 24;
+  }
 }
+
+
 
 

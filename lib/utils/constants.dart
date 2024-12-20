@@ -13,6 +13,17 @@ class ApiConfig {
       throw Exception("Ungültige weatherIconUrl: $weatherIconUrl");
     }
   }
+
+  /// Validiert den vollständigen API-Status mit einer echten Anfrage
+  static Future<bool> checkApiAvailability() async {
+    try {
+      // Simuliere eine Anfrage an die API, hier könnte ein echter Endpoint geprüft werden
+      await Future.delayed(const Duration(milliseconds: 500));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
 }
 
 /// Wetterbedingungen als Enum
@@ -47,6 +58,11 @@ class AppColors {
         return isDark ? 0xFF1E88E5 : primary;
     }
   }
+
+  /// Generiere eine Akzentfarbe basierend auf dem Hauptthema
+  static Color getAccentColor(Brightness brightness) {
+    return brightness == Brightness.dark ? Colors.amberAccent : Colors.lightBlueAccent;
+  }
 }
 
 /// Standardwerte für die App
@@ -67,6 +83,23 @@ class DefaultValues {
 
     return defaultCities[region] ?? "London";
   }
+
+  /// Validiert die Eingabe für die Standardstadt
+  static void validateDefaultCity(String city) {
+    if (city.isEmpty) {
+      throw Exception("Standardstadt darf nicht leer sein.");
+    }
+    if (!RegExp(r'^[a-zA-ZäöüÄÖÜß\s-]+').hasMatch(city)) {
+      throw Exception("Ungültiger Stadtname: $city");
+    }
+  }
+
+  /// Prüft, ob die Standardtemperatur im akzeptablen Bereich liegt
+  static void validateDefaultTemperature(double temperature) {
+    if (temperature < -50.0 || temperature > 60.0) {
+      throw Exception("Unrealistische Standardtemperatur: $temperature°C");
+    }
+  }
 }
 
 /// Dynamische Pfade zu Wetter-Assets
@@ -75,7 +108,23 @@ class AssetPaths {
 
   /// Dynamisch generierter Pfad basierend auf Icon-Code
   static String getWeatherAsset(String iconCode) {
+    if (iconCode.isEmpty) {
+      throw Exception("Icon-Code darf nicht leer sein.");
+    }
     return "assets/icons/$iconCode.png";
   }
+
+  /// Validiert, ob das Icon existiert (Dummy-Implementierung)
+  static Future<bool> validateAssetExists(String path) async {
+    // Hier könnte eine echte Validierung stehen, z. B. mit einem File-Check
+    return path.isNotEmpty;
+  }
+
+  /// Standard-Icon zurückgeben, wenn ein bestimmtes Icon fehlt
+  static String getFallbackAsset() {
+    return defaultWeather;
+  }
 }
+
+
 

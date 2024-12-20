@@ -85,27 +85,93 @@ final darkTheme = ThemeData(
   ),
 );
 
+final weatherThemes = {
+  'sunny': ThemeData(
+    colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.yellow).copyWith(
+      secondary: Colors.orangeAccent,
+      surface: Colors.amber[100]!,
+      onPrimary: Colors.black,
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.amber,
+      foregroundColor: Colors.black,
+      elevation: 2,
+    ),
+  ),
+  'rainy': ThemeData(
+    colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.blueGrey).copyWith(
+      secondary: Colors.lightBlueAccent,
+      surface: Colors.grey[200]!,
+      onPrimary: Colors.white,
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.blueGrey,
+      foregroundColor: Colors.white,
+      elevation: 2,
+    ),
+  ),
+  'snowy': ThemeData(
+    colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.lightBlue).copyWith(
+      secondary: Colors.white,
+      surface: Colors.blue[50]!,
+      onPrimary: Colors.black,
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.lightBlue,
+      foregroundColor: Colors.black,
+      elevation: 2,
+    ),
+  ),
+  'cloudy': ThemeData(
+    colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.grey).copyWith(
+      secondary: Colors.blueGrey,
+      surface: Colors.grey[300]!,
+      onPrimary: Colors.black,
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.grey,
+      foregroundColor: Colors.black,
+      elevation: 2,
+    ),
+  ),
+};
+
 class ThemeProvider extends ChangeNotifier {
   ThemeData _currentTheme = lightTheme;
 
   ThemeData get currentTheme => _currentTheme;
 
+  ThemeMode _themeMode = ThemeMode.light;
+
+  ThemeMode get themeMode => _themeMode;
+
   // Lade gespeichertes Theme
   Future<void> loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
     final isDarkMode = prefs.getBool('isDarkMode') ?? false;
-    _currentTheme = isDarkMode ? darkTheme : lightTheme;
+    _themeMode = isDarkMode ? ThemeMode.dark : ThemeMode.light;
     notifyListeners();
   }
 
   // Wechsel zwischen Themes
   void toggleTheme() async {
-    _currentTheme = _currentTheme == lightTheme ? darkTheme : lightTheme;
+    _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
     final prefs = await SharedPreferences.getInstance();
-    prefs.setBool('isDarkMode', _currentTheme == darkTheme);
+    prefs.setBool('isDarkMode', _themeMode == ThemeMode.dark);
+    notifyListeners();
+  }
+
+  // Wechsel zu wetterbasiertem Theme
+  void setWeatherTheme(String condition) {
+    if (weatherThemes.containsKey(condition)) {
+      _currentTheme = weatherThemes[condition]!;
+    } else {
+      _currentTheme = lightTheme; // Fallback
+    }
     notifyListeners();
   }
 }
+
 
 
 

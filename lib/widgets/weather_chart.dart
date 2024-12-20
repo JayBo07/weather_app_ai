@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 
+class WeatherModel {
+  double? get temperature => null;
+
+  DateTime? get timestamp => null;
+}
 
 class WeatherChart extends StatelessWidget {
   final List<WeatherModel> forecastData;
@@ -28,10 +33,13 @@ class WeatherChart extends StatelessWidget {
                   getTitlesWidget: (value, _) {
                     int index = value.toInt();
                     if (index >= 0 && index < forecastData.length) {
-                      return Text(
-                        DateFormat.E().format(forecastData[index].timestamp),
-                        style: const TextStyle(fontSize: 12),
-                      );
+                      final timestamp = forecastData[index].timestamp;
+                      if (timestamp != null) {
+                        return Text(
+                          DateFormat.E().format(timestamp),
+                          style: const TextStyle(fontSize: 12),
+                        );
+                      }
                     }
                     return const Text('');
                   },
@@ -54,8 +62,8 @@ class WeatherChart extends StatelessWidget {
               LineChartBarData(
                 spots: forecastData.asMap().entries.map((entry) {
                   int index = entry.key;
-                  double temp = entry.value.temperature;
-                  return FlSpot(index.toDouble(), temp);
+                  double? temp = entry.value.temperature;
+                  return FlSpot(index.toDouble(), temp!);
                 }).toList(),
                 isCurved: true,
                 barWidth: 4,
@@ -73,4 +81,6 @@ class WeatherChart extends StatelessWidget {
     );
   }
 }
+
+
 

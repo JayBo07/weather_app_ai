@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
+import 'screens/home_screen.dart' as home_screen;
 import 'screens/forecast_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/splash_screen.dart';
@@ -12,6 +12,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     await dotenv.load(fileName: ".env");
+    print("ENV geladen: ${dotenv.env}");
   } catch (e) {
     print("Fehler beim Laden der .env-Datei: $e");
   }
@@ -23,13 +24,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => ThemeProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()..loadTheme()),
+      ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
           return MaterialApp(
             title: 'Wetter App',
-            theme: lightTheme,
+            theme: themeProvider.currentTheme, // Dynamisches Theme
             darkTheme: darkTheme,
             themeMode: themeProvider.themeMode,
             initialRoute: '/',
@@ -63,7 +66,7 @@ class NavigationHandler extends StatefulWidget {
 class _NavigationHandlerState extends State<NavigationHandler> {
   int _selectedIndex = 0;
   final List<Widget> _screens = [
-    const HomeScreen(),
+    const home_screen.HomeScreen(),
     const ForecastScreen(),
     const FavoritesScreen(),
     const SettingsScreen(),
@@ -92,6 +95,8 @@ class _NavigationHandlerState extends State<NavigationHandler> {
     );
   }
 }
+
+
 
 
 

@@ -41,13 +41,15 @@ class WeatherModel {
   factory WeatherModel.fromJson(Map<String, dynamic> json) {
     // Überprüfen, ob 'weather' eine Liste ist und nicht leer
     final weather = json['weather'] is List && json['weather'].isNotEmpty
-        ? json['weather'][0]
-        : {}; // Wenn 'weather' leer oder null ist, setze es auf ein leeres Map
+        ? (json['weather'][0] is Map<String, dynamic>
+        ? json['weather'][0] as Map<String, dynamic>
+        : {})
+        : {}; // Wenn 'weather' leer oder ungültig ist, setze es auf ein leeres Map
 
     return WeatherModel(
-      cityName: json['name'] ?? 'Unknown', // 'Unknown' verwenden, wenn 'name' null ist
-      temperature: (json['main']['temp'] as num?)?.toDouble() ?? 0.0, // Falls 'temp' null ist, setze auf 0.0
-      condition: weather['description'] ?? 'Unknown', // Falls 'description' null ist, setze auf 'Unknown'
+      cityName: json['name']?.toString().isNotEmpty == true ? json['name'] : 'Unbekannter Ort', // Setze auf 'Unbekannter Ort', wenn der Name leer ist
+      temperature: (json['main']['temp'] as num?)?.toDouble() ?? -999.0, // Spezieller Fehlerwert -999.0 für fehlende Temperatur
+      condition: weather['description'] ?? 'Keine Angaben', // Falls 'description' null ist, setze auf 'Keine Angaben'
       windSpeed: (json['wind']['speed'] as num?)?.toDouble() ?? 0.0, // Falls 'speed' null ist, setze auf 0.0
       humidity: json['main']['humidity'] ?? 0, // Falls 'humidity' null ist, setze auf 0
       icon: weather['icon'] ?? '', // Falls 'icon' null ist, setze auf leeren String
@@ -55,9 +57,6 @@ class WeatherModel {
       sunset: json['sys']['sunset'] ?? 0, // Falls 'sunset' null ist, setze auf 0
     );
   }
-
-
-
 
   String getTranslatedCondition(String language) {
     return translateDescription(condition, language);
@@ -71,6 +70,7 @@ class WeatherModel {
     return Duration(seconds: sunset - sunrise);
   }
 }
+
 
 
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// Globale Theme-Daten
 final lightTheme = ThemeData(
   brightness: Brightness.light,
   colorScheme: ColorScheme.fromSwatch(
@@ -15,12 +16,12 @@ final lightTheme = ThemeData(
   textTheme: const TextTheme(
     headlineLarge: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
     bodyLarge: TextStyle(fontSize: 16),
-    bodyMedium: TextStyle(color: Colors.black), // Textfarbe für Hauptinhalt
+    bodyMedium: TextStyle(color: Colors.black),
   ),
   elevatedButtonTheme: ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
-      backgroundColor: Colors.blueAccent, // Ersetzt primary
-      foregroundColor: Colors.white, // Ersetzt onPrimary
+      backgroundColor: Colors.blueAccent,
+      foregroundColor: Colors.white,
     ),
   ),
   appBarTheme: const AppBarTheme(
@@ -47,6 +48,7 @@ final darkTheme = ThemeData(
   brightness: Brightness.dark,
   colorScheme: ColorScheme.fromSwatch(
     primarySwatch: Colors.blue,
+    brightness: Brightness.dark,
   ).copyWith(
     secondary: Colors.blueAccent,
     surface: Colors.grey[800]!,
@@ -57,12 +59,12 @@ final darkTheme = ThemeData(
   textTheme: const TextTheme(
     headlineLarge: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
     bodyLarge: TextStyle(fontSize: 16),
-    bodyMedium: TextStyle(color: Colors.white), // Textfarbe für Hauptinhalt
+    bodyMedium: TextStyle(color: Colors.white),
   ),
   elevatedButtonTheme: ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
-      backgroundColor: Colors.grey, // Ersetzt primary
-      foregroundColor: Colors.white, // Ersetzt onPrimary
+      backgroundColor: Colors.grey,
+      foregroundColor: Colors.white,
     ),
   ),
   appBarTheme: const AppBarTheme(
@@ -138,30 +140,30 @@ final weatherThemes = {
 
 class ThemeProvider extends ChangeNotifier {
   ThemeData _currentTheme = lightTheme;
-
-  ThemeData get currentTheme => _currentTheme;
-
   ThemeMode _themeMode = ThemeMode.light;
 
+  ThemeData get currentTheme => _currentTheme;
   ThemeMode get themeMode => _themeMode;
 
-  // Lade gespeichertes Theme
+  // Lade gespeichertes Theme aus SharedPreferences
   Future<void> loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
     final isDarkMode = prefs.getBool('isDarkMode') ?? false;
     _themeMode = isDarkMode ? ThemeMode.dark : ThemeMode.light;
+    _currentTheme = isDarkMode ? darkTheme : lightTheme;
     notifyListeners();
   }
 
-  // Wechsel zwischen Themes
+  // Wechsel zwischen hell und dunkel
   void toggleTheme() async {
     _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    _currentTheme = _themeMode == ThemeMode.dark ? darkTheme : lightTheme;
     final prefs = await SharedPreferences.getInstance();
     prefs.setBool('isDarkMode', _themeMode == ThemeMode.dark);
     notifyListeners();
   }
 
-  // Wechsel zu wetterbasiertem Theme
+  // Wetterabhängiges Theme setzen
   void setWeatherTheme(String condition) {
     if (weatherThemes.containsKey(condition)) {
       _currentTheme = weatherThemes[condition]!;
@@ -171,6 +173,7 @@ class ThemeProvider extends ChangeNotifier {
     notifyListeners();
   }
 }
+
 
 
 
